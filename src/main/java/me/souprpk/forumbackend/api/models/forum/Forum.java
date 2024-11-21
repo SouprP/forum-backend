@@ -1,4 +1,4 @@
-package me.souprpk.forumbackend.api.models;
+package me.souprpk.forumbackend.api.models.forum;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

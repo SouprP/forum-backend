@@ -1,6 +1,6 @@
-package me.souprpk.forumbackend.api.service;
+package me.souprpk.forumbackend.api.service.imageboard;
 
-import me.souprpk.forumbackend.api.models.Image;
+import me.souprpk.forumbackend.api.models.imageboard.Image;
 
 import java.util.Map;
 

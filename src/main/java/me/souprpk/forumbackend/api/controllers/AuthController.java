@@ -1,5 +1,9 @@
 package me.souprpk.forumbackend.api.controllers;
 
+import me.souprpk.forumbackend.api.dto.requests.LoginRequest;
+import me.souprpk.forumbackend.api.dto.requests.RegisterRequest;
+import me.souprpk.forumbackend.api.dto.responses.AuthTokenResponse;
+import me.souprpk.forumbackend.api.dto.responses.UserAuthResponse;
 import me.souprpk.forumbackend.api.models.Role;
 import me.souprpk.forumbackend.api.models.UserEntity;
 import me.souprpk.forumbackend.api.repository.RoleRepository;
@@ -39,78 +43,89 @@ public class AuthController {
         this.jwtGenerator = jwtGenerator;
     }
 
-//    @PostMapping("/login")
-//    public ResponseEntity<AuthResponseDto> login(@RequestBody LoginDto loginDto){
-//        Authentication authentication = authenticationManager.authenticate(
-//                new UsernamePasswordAuthenticationToken(loginDto.getUsername(), loginDto.getPassword()));
-//
-//        SecurityContextHolder.getContext().setAuthentication(authentication);
-//        String token = jwtGenerator.generateToken(authentication);
-//        return new ResponseEntity<>(new AuthResponseDto(token), HttpStatus.OK);
-//    }
-//
-//    @PostMapping("/register")
-//    public ResponseEntity<UserEntity> register(@RequestBody RegisterDto registerDto) {
-//        if(userRepository.existsByUsername(registerDto.getUsername()))
-//            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-//
-//        UserEntity user = new UserEntity();
-//        user.setEmail(registerDto.getEmail());
-//        user.setUsername(registerDto.getUsername());
-//        user.setPassword(passwordEncoder.encode((registerDto.getPassword())));
-//
-//        Role roles = roleRepository.findByName("USER").get();
-//        user.setRoles(Collections.singletonList(roles));
-//
-//        userRepository.save(user);
-//
-//        return new ResponseEntity<>(user, HttpStatus.OK);
-//    }
-//
-//    @GetMapping("/me")
-//    public ResponseEntity<User> getCurrentUser() {
-//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//        User currentUser;
-//
-//        try{
-//            currentUser = (User) authentication.getPrincipal();
-//        }
-//        catch(Exception e){
-//            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
-//        }
-//
-//        return new ResponseEntity<>(currentUser, HttpStatus.OK);
-//    }
-//
-//    @PostMapping("/has-auth/{username}")
-//    public ResponseEntity<HasAuthDto> getUserAuth(@PathVariable String username) {
-//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//        User currentUser;
-//
-//        HasAuthDto response = new HasAuthDto();
-//
-//        try{
-//            currentUser = (User) authentication.getPrincipal();
-//        }
-//        catch(Exception e){
-//            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
-//        }
-//
-//        response.setUsername(currentUser.getUsername());
-//
-//        if(username.equals(currentUser.getUsername())){
-//            response.setHasAuth(true);
-//            return new ResponseEntity<>(response, HttpStatus.OK);
-//        }
-//
-//
-//        for(var authority : currentUser.getAuthorities())
-//            if(authority.getAuthority().equals("ADMIN")){
-//                response.setHasAuth(true);
-//                return new ResponseEntity<>(response, HttpStatus.OK);
-//            }
-//
-//        response.setHasAuth(false);
-//        return new ResponseEntity<>(response, HttpStatus.OK);
-//    }
+    @PostMapping("/login")
+    public ResponseEntity<AuthTokenResponse> login(@RequestBody LoginRequest loginRequest){
+        // check if user exists
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+
+        // generating a new JWT token for the user
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String token = jwtGenerator.generateToken(authentication);
+        return new ResponseEntity<>(new AuthTokenResponse(token), HttpStatus.OK);
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<UserEntity> register(@RequestBody RegisterRequest registerRequest) {
+        // check if user already exists
+        if(userRepository.existsByUsername(registerRequest.getUsername()))
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+
+        // create a new user object
+        UserEntity user = new UserEntity();
+        user.setEmail(registerRequest.getEmail());
+        user.setUsername(registerRequest.getUsername());
+        user.setPassword(passwordEncoder.encode((registerRequest.getPassword())));
+
+        // give the user a role
+        Role roles = roleRepository.findByName("USER").get();
+        user.setRoles(Collections.singletonList(roles));
+
+        // insert the user into the database
+        userRepository.save(user);
+
+        return new ResponseEntity<>(user, HttpStatus.OK);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<User> getCurrentUser() {
+        // get the info about the user who the GET request
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser;
+
+        // check if the user exists (is logged in)
+        try{
+            currentUser = (User) authentication.getPrincipal();
+        }
+        catch(Exception e){
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        }
+
+        return new ResponseEntity<>(currentUser, HttpStatus.OK);
+    }
+
+    // REDO THIS FOR MORE SECURITY AS IT'S A BIG SECURITY RISK (don't use the goddam username)
+    @PostMapping("/has-auth/{username}")
+    public ResponseEntity<UserAuthResponse> getUserAuth(@PathVariable String username) {
+        // user sending the request
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser;
+
+        UserAuthResponse response = new UserAuthResponse();
+
+        try{
+            currentUser = (User) authentication.getPrincipal();
+        }
+        catch(Exception e){
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        }
+
+        response.setUsername(currentUser.getUsername());
+
+        // checks if the user sending the requests is the same as in the provided username
+        if(username.equals(currentUser.getUsername())){
+            response.setHasAuth(true);
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        // checks if the user sending the request is an ADMIN
+        for(var authority : currentUser.getAuthorities())
+            if(authority.getAuthority().equals("ADMIN")){
+                response.setHasAuth(true);
+                return new ResponseEntity<>(response, HttpStatus.OK);
+            }
+
+        response.setHasAuth(false);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
 }

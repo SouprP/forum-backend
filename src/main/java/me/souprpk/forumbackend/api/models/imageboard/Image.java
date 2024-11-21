@@ -1,11 +1,10 @@
-package me.souprpk.forumbackend.api.models;
+package me.souprpk.forumbackend.api.models.imageboard;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Type;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
